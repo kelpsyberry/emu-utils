@@ -395,7 +395,7 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
             let post_load_ident = post_load
                 .as_ref()
-                .map(|_| format_ident!("post_load"))
+                .map(|_| format_ident!("__internal_post_load"))
                 .into_iter();
             let post_load_ident_ = post_load_ident.clone();
             let load_post_load = quote! {
@@ -742,7 +742,7 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             } else {
                 let post_load_ident = post_load
                     .as_ref()
-                    .map(|_| format_ident!("post_load"))
+                    .map(|_| format_ident!("__internal_post_load"))
                     .into_iter();
                 let post_load_ident_ = post_load_ident.clone();
                 quote! {
