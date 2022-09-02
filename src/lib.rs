@@ -2,7 +2,8 @@
     generic_const_exprs,
     maybe_uninit_uninit_array,
     maybe_uninit_array_assume_init,
-    portable_simd
+    portable_simd,
+    const_trait_impl
 )]
 #![allow(incomplete_features)]
 #![warn(clippy::all)]

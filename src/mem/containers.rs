@@ -291,14 +291,14 @@ impl<const LEN: usize> DerefMut for Bytes<LEN> {
     }
 }
 
-impl<const LEN: usize> From<[u8; LEN]> for Bytes<LEN> {
+impl<const LEN: usize> const From<[u8; LEN]> for Bytes<LEN> {
     #[inline]
     fn from(other: [u8; LEN]) -> Self {
         Self::new(other)
     }
 }
 
-impl<const LEN: usize> From<Bytes<LEN>> for [u8; LEN] {
+impl<const LEN: usize> const From<Bytes<LEN>> for [u8; LEN] {
     #[inline]
     fn from(other: Bytes<LEN>) -> Self {
         other.0
