@@ -37,7 +37,7 @@ where
             buffer,
             len,
             read_pos: 0,
-            write_pos: len,
+            write_pos: if len == CAPACITY { 0 } else { len },
         })
     }
 }
@@ -66,7 +66,7 @@ where
         save.end_struct()?;
 
         self.read_pos = 0;
-        self.write_pos = self.len;
+        self.write_pos = if self.len == CAPACITY { 0 } else { self.len };
 
         Ok(())
     }
@@ -85,7 +85,7 @@ where
 
         save.start_field(b"buffer")?;
         let mut i = self.read_pos;
-        while i != self.write_pos {
+        for _ in 0..self.len {
             save.store(unsafe { self.buffer.get_unchecked_mut(i).assume_init_mut() })?;
             i += 1;
             if i == CAPACITY {
