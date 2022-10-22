@@ -9,6 +9,9 @@ version = "0.0.0"
 edition = "2021"
 publish = false
 
+[features]
+std = []
+
 [dependencies]
 cfg-if = "1.0"
 emu-utils-macros = { path = "macros" }

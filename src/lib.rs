@@ -3,7 +3,8 @@
     maybe_uninit_uninit_array,
     maybe_uninit_array_assume_init,
     portable_simd,
-    const_trait_impl
+    const_trait_impl,
+    new_uninit
 )]
 #![allow(incomplete_features)]
 #![warn(clippy::all)]
@@ -23,3 +24,5 @@ pub use mem::*;
 mod savestate;
 pub use savestate::*;
 pub mod schedule;
+#[cfg(feature = "std")]
+pub mod triple_buffer;
