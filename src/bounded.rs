@@ -161,14 +161,14 @@ macro_rules! bounded_int_common {
             }
         }
 
-        impl const From<$inner> for $name {
+        impl From<$inner> for $name {
             #[inline]
             fn from(other: $inner) -> Self {
                 Self::new(other)
             }
         }
 
-        impl const From<$name> for $inner {
+        impl From<$name> for $inner {
             #[inline]
             fn from(other: $name) -> Self {
                 other.get()

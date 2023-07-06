@@ -3,7 +3,6 @@
     maybe_uninit_uninit_array,
     maybe_uninit_array_assume_init,
     portable_simd,
-    const_trait_impl,
     new_uninit
 )]
 #![allow(incomplete_features)]

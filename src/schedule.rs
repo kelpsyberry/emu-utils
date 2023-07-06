@@ -11,7 +11,7 @@ macro_rules! def_timestamp {
         $(#[$($attr)*])*
         $vis struct $name(pub $crate::schedule::RawTimestamp);
         
-        impl const ::core::ops::Add for $name {
+        impl ::core::ops::Add for $name {
             type Output = Self;
             #[inline]
             fn add(self, rhs: Self) -> Self {
@@ -19,14 +19,14 @@ macro_rules! def_timestamp {
             }
         }
         
-        impl const ::core::convert::From<$crate::schedule::RawTimestamp> for $name {
+        impl ::core::convert::From<$crate::schedule::RawTimestamp> for $name {
             #[inline]
             fn from(v: $crate::schedule::RawTimestamp) -> Self {
                 Self(v)
             }
         }
         
-        impl const ::core::convert::From<$name> for $crate::schedule::RawTimestamp {
+        impl ::core::convert::From<$name> for $crate::schedule::RawTimestamp {
             #[inline]
             fn from(v: $name) -> Self {
                 v.0
@@ -109,7 +109,7 @@ macro_rules! def_event_slot_index {
         }
         pub use $priv_mod_ident::*;
         
-        impl const ::core::convert::From<usize> for $name {
+        impl ::core::convert::From<usize> for $name {
             #[inline]
             fn from(v: usize) -> Self {
                 assert!(v < $event_slots_mod_ident::LEN);
@@ -117,7 +117,7 @@ macro_rules! def_event_slot_index {
             }
         }
         
-        impl const ::core::convert::From<$name> for usize {
+        impl ::core::convert::From<$name> for usize {
             #[inline]
             fn from(v: $name) -> Self {
                 v.get() as usize
