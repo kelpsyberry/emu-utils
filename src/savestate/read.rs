@@ -421,7 +421,7 @@ impl<const LEN: usize> Loadable for Bytes<LEN> {
     #[inline]
     fn load<S: ReadSavestate>(save: &mut S) -> Result<Self, S::Error> {
         save.load_bytes(LEN)
-            .map(|v| unsafe { (&*(v as *const Bytes<LEN>)).clone() })
+            .map(|v| unsafe { (*(v as *const Bytes<LEN>)).clone() })
     }
 }
 

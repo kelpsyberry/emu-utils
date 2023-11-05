@@ -3,7 +3,7 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote, quote_spanned};
 use syn::{
     parse_macro_input, parse_str, spanned::Spanned, Attribute, Data, DeriveInput, Expr, Fields,
-    GenericParam, Lit, LitByteStr, LitInt, Meta, NestedMeta, Path,
+    GenericParam, Lit, LitByteStr, LitInt, Meta, Path,
 };
 
 fn meta_ident_eq(path: &Path, value: &str) -> bool {
@@ -34,12 +34,12 @@ struct LoadStoreOptions {
 }
 
 impl LoadStoreOptions {
-    fn parse(attrs: &[Attribute]) -> Result<Self, &str> {
+    fn parse(attrs: &[Attribute]) -> syn::parse::Result<Self> {
         let mut options = LoadStoreOptions::default();
 
         for attr in attrs {
-            let meta_list = match attr.parse_meta() {
-                Ok(Meta::List(meta_list)) => meta_list,
+            let meta_list = match &attr.meta {
+                Meta::List(meta_list) => meta_list,
                 _ => continue,
             };
 
@@ -49,35 +49,26 @@ impl LoadStoreOptions {
                     $(($pre_post: literal, $fn_ident: ident)),*
                     $(; $only_load_in_place: literal)?
                 ) => {
-                    for nested_meta in meta_list.nested.iter() {
-                        let meta = match nested_meta {
-                            NestedMeta::Meta(meta) => meta,
-                            _ => return Err(concat!("invalid `", $name, "` attribute")),
-                        };
-                        match meta {
-                            Meta::NameValue(name_value) => {
-                                $(if meta_ident_eq(&name_value.path, $pre_post) {
-                                    options.$fn_ident = Some(
-                                        parse_expr_in_str_literal(&name_value.lit).ok_or(concat!(
-                                            "invalid ",
-                                            $pre_post,
-                                            "-",
-                                            $name,
-                                            " code specification"
-                                        ))?,
-                                    );
-                                } else)* {
-                                    return Err(concat!("invalid `", $name, "` attribute"));
-                                }
-                            }
-                            $(Meta::Path(path) => {
-                                if meta_ident_eq(path, $only_load_in_place) {
-                                    options.only_load_in_place = true;
-                                }
-                            })*
-                            _ => {}
-                        }
-                    }
+                    meta_list.parse_nested_meta(|nested_meta| {
+                        $(if meta_ident_eq(&nested_meta.path, $pre_post) {
+                            options.$fn_ident = Some(
+                                parse_expr_in_str_literal(&nested_meta.value()?.parse::<Lit>()?)
+                                    .ok_or(nested_meta.error(concat!(
+                                        "invalid ",
+                                        $pre_post,
+                                        "-",
+                                        $name,
+                                        " code specification"
+                                    )))?,
+                            );
+                            return Ok(());
+                        })*
+                        $(if meta_ident_eq(&nested_meta.path, $only_load_in_place) {
+                            options.only_load_in_place = true;
+                            return Ok(());
+                        })*
+                        return Err(nested_meta.error(concat!("invalid `", $name, "` attribute")));
+                    })?;
                 };
             }
 
@@ -106,7 +97,11 @@ enum LoadStoreKind {
 }
 
 impl FieldsData {
-    fn parse(fields: &Fields, only_load: bool, mut only_load_in_place: bool) -> Result<Self, &str> {
+    fn parse(
+        fields: &Fields,
+        only_load: bool,
+        mut only_load_in_place: bool,
+    ) -> syn::parse::Result<Self> {
         let fields_and_idents = match fields {
             Fields::Named(named) => named
                 .named
@@ -144,67 +139,80 @@ impl FieldsData {
             let mut store_kind = Some(LoadStoreKind::Default);
 
             for attr in &field.attrs {
-                let meta_list = match attr.parse_meta() {
-                    Ok(Meta::List(meta_list)) => meta_list,
+                let meta_list = match &attr.meta {
+                    Meta::List(meta_list) => meta_list,
                     _ => continue,
                 };
 
                 macro_rules! parse_exprs {
                     ($name: literal, $kind: ident $(, $in_place_kind: ident)?) => {
-                        for nested_meta in meta_list.nested.iter() {
-                            let meta = match nested_meta {
-                                NestedMeta::Meta(meta) => meta,
-                                _ => return Err(concat!("invalid `", $name, "` attribute")),
-                            };
-                            match meta {
-                                Meta::Path(word) => {
-                                    if meta_ident_eq(word, "skip") {
-                                        $kind = None;
-                                        $($in_place_kind = None;)*
-                                    }
-                                }
-
-                                Meta::NameValue(name_value) => {
-                                    if meta_ident_eq(&name_value.path, "value") {
-                                        $kind = Some(LoadStoreKind::Value(
-                                            parse_expr_in_str_literal(&name_value.lit).ok_or(
-                                                concat!("invalid ", $name, " value specification"),
-                                            )?,
-                                        ));
-                                        $($in_place_kind = $kind.clone();)*
-                                    } else if meta_ident_eq(&name_value.path, "with") {
-                                        let expr =
-                                            parse_expr_in_str_literal(&name_value.lit).ok_or(
-                                                concat!("invalid ", $name, " value specification"),
-                                            )?;
-                                        $kind = Some(LoadStoreKind::Fn(
-                                            quote_spanned! {expr.span()=>
-                                                #[allow(unused_variables)]
-                                                let save = &mut *save;
-                                                #expr
-                                            },
-                                        ));
-                                    } $(
-                                        else if meta_ident_eq(&name_value.path, "with_in_place") {
-                                            let expr = parse_expr_in_str_literal(&name_value.lit)
-                                                .ok_or(concat!(
-                                                    "invalid ",
-                                                    $name,
-                                                    " value specification",
-                                                ))?;
-                                            $in_place_kind = Some(LoadStoreKind::Fn(
-                                                quote_spanned! {expr.span()=>
-                                                    #[allow(unused_variables)]
-                                                    let save = &mut *save;
-                                                    #expr
-                                                },
-                                            ));
-                                        }
-                                    )*
-                                }
-                                _ => {}
+                        meta_list.parse_nested_meta(|nested_meta| {
+                            if meta_ident_eq(&nested_meta.path, "skip") {
+                                $kind = None;
+                                $($in_place_kind = None;)*
+                                return Ok(());
                             }
-                        }
+
+                            if meta_ident_eq(&nested_meta.path, "value") {
+                                $kind = Some(LoadStoreKind::Value(
+                                    parse_expr_in_str_literal(
+                                        &nested_meta.value()?.parse::<Lit>()?,
+                                    )
+                                    .ok_or(
+                                        nested_meta.error(concat!(
+                                            "invalid ",
+                                            $name,
+                                            " value specification"
+                                        )),
+                                    )?,
+                                ));
+                                $($in_place_kind = $kind.clone();)*
+                                return Ok(());
+                            } else if meta_ident_eq(&nested_meta.path, "with") {
+                                let expr = parse_expr_in_str_literal(
+                                    &nested_meta.value()?.parse::<Lit>()?,
+                                )
+                                .ok_or(
+                                    nested_meta.error(concat!(
+                                        "invalid ",
+                                        $name,
+                                        " value specification"
+                                    )),
+                                )?;
+                                $kind = Some(LoadStoreKind::Fn(quote_spanned! {expr.span()=>
+                                    #[allow(unused_variables)]
+                                    let save = &mut *save;
+                                    #expr
+                                }));
+                                return Ok(());
+                            } $(
+                                else if meta_ident_eq(&nested_meta.path, "with_in_place") {
+                                    let expr = parse_expr_in_str_literal(
+                                        &nested_meta.value()?.parse::<Lit>()?,
+                                    )
+                                    .ok_or(
+                                        nested_meta.error(concat!(
+                                            "invalid ",
+                                            $name,
+                                            " value specification",
+                                        )),
+                                    )?;
+                                    $in_place_kind =
+                                        Some(LoadStoreKind::Fn(quote_spanned! {expr.span()=>
+                                            #[allow(unused_variables)]
+                                            let save = &mut *save;
+                                            #expr
+                                        }));
+                                    return Ok(());
+                                }
+                            )*
+
+                            return Err(nested_meta.error(concat!(
+                                "invalid `",
+                                $name,
+                                "` attribute"
+                            )));
+                        })?;
                     };
                 }
 
@@ -213,19 +221,16 @@ impl FieldsData {
                 } else if meta_ident_eq(&meta_list.path, "store") {
                     parse_exprs!("store", store_kind);
                 } else if meta_ident_eq(&meta_list.path, "savestate") {
-                    for nested_meta in meta_list.nested.iter() {
-                        let meta = match nested_meta {
-                            NestedMeta::Meta(meta) => meta,
-                            _ => return Err(concat!("invalid `savestate` attribute")),
-                        };
-                        if let Meta::Path(word) = meta {
-                            if meta_ident_eq(word, "skip") {
-                                load_kind = None;
-                                load_in_place_kind = None;
-                                store_kind = None;
-                            }
+                    meta_list.parse_nested_meta(|nested_meta| {
+                        if meta_ident_eq(&nested_meta.path, "skip") {
+                            load_kind = None;
+                            load_in_place_kind = None;
+                            store_kind = None;
+                            Ok(())
+                        } else {
+                            Err(nested_meta.error(concat!("invalid `savestate` attribute")))
                         }
-                    }
+                    })?;
                 }
             }
 
@@ -318,10 +323,9 @@ impl FieldsData {
 
                         LoadStoreKind::Value(value) => {
                             quote_spanned!(ident.span()=> {#value})
-                        },
-                        
-                        LoadStoreKind::Fn(value) => 
-                        quote_spanned! {ident.span()=> {
+                        }
+
+                        LoadStoreKind::Fn(value) => quote_spanned! {ident.span()=> {
                             #(save.start_field(#name)?;)*
                             #value
                         }},
