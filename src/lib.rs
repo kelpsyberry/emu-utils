@@ -25,3 +25,4 @@ pub use savestate::*;
 pub mod schedule;
 #[cfg(feature = "std")]
 pub mod triple_buffer;
+mod resource;
