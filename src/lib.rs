@@ -15,6 +15,10 @@ extern crate self as emu_utils;
 
 pub use emu_utils_macros::*;
 
+#[cfg(all(target_os = "macos", app_bundle))]
+#[macro_use]
+extern crate objc;
+
 mod bounded;
 mod fifo;
 pub use fifo::Fifo;
@@ -25,4 +29,5 @@ pub use savestate::*;
 pub mod schedule;
 #[cfg(feature = "std")]
 pub mod triple_buffer;
-mod resource;
+mod app;
+pub use app::*;
