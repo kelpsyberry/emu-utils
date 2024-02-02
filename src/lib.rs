@@ -26,8 +26,8 @@ mod mem;
 pub use mem::*;
 mod savestate;
 pub use savestate::*;
+mod app;
 pub mod schedule;
 #[cfg(feature = "std")]
 pub mod triple_buffer;
-mod app;
 pub use app::*;

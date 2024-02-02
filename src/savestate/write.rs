@@ -385,7 +385,10 @@ impl Storable for bool {
 }
 
 #[inline]
-pub fn store_slice<S: WriteSavestate, T: Storable>(slice: &mut [T], save: &mut S) -> Result<(), S::Error> {
+pub fn store_slice<S: WriteSavestate, T: Storable>(
+    slice: &mut [T],
+    save: &mut S,
+) -> Result<(), S::Error> {
     for elem in slice {
         save.store(elem)?;
     }

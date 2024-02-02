@@ -160,20 +160,6 @@ macro_rules! bounded_int_common {
                 unsafe { Self::new_unchecked(value) }
             }
         }
-
-        impl From<$inner> for $name {
-            #[inline]
-            fn from(other: $inner) -> Self {
-                Self::new(other)
-            }
-        }
-
-        impl From<$name> for $inner {
-            #[inline]
-            fn from(other: $name) -> Self {
-                other.get()
-            }
-        }
     };
 }
 
@@ -315,6 +301,44 @@ macro_rules! bounded_int_step {
 }
 
 #[macro_export]
+macro_rules! bounded_int_unsafe_from_into {
+    ($name: ident($inner: ty)) => {
+        impl ::proc_bitfield::UnsafeFrom<$inner> for $name {
+            #[inline]
+            unsafe fn unsafe_from(other: $inner) -> Self {
+                Self::new_unchecked(other)
+            }
+        }
+
+        impl From<$name> for $inner {
+            #[inline]
+            fn from(other: $name) -> Self {
+                other.get()
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! bounded_int_from_into {
+    ($name: ident($inner: ty)) => {
+        impl From<$inner> for $name {
+            #[inline]
+            fn from(other: $inner) -> Self {
+                Self::new(other)
+            }
+        }
+
+        impl From<$name> for $inner {
+            #[inline]
+            fn from(other: $name) -> Self {
+                other.get()
+            }
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! bounded_int_savestate {
     ($name: ident($inner: ty)) => {
         impl $crate::Loadable for $name {
@@ -324,7 +348,7 @@ macro_rules! bounded_int_savestate {
                     .and_then(|v| Self::new_checked(v).ok_or_else(|| S::invalid_enum()))
             }
         }
-        
+
         impl $crate::LoadableInPlace for $name {
             #[inline]
             fn load_in_place<S: $crate::ReadSavestate>(

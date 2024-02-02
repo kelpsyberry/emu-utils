@@ -10,7 +10,7 @@ macro_rules! def_timestamp {
         #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
         $(#[$($attr)*])*
         $vis struct $name(pub $crate::schedule::RawTimestamp);
-        
+
         impl ::core::ops::Add for $name {
             type Output = Self;
             #[inline]
@@ -18,14 +18,14 @@ macro_rules! def_timestamp {
                 Self(self.0 + rhs.0)
             }
         }
-        
+
         impl ::core::convert::From<$crate::schedule::RawTimestamp> for $name {
             #[inline]
             fn from(v: $crate::schedule::RawTimestamp) -> Self {
                 Self(v)
             }
         }
-        
+
         impl ::core::convert::From<$name> for $crate::schedule::RawTimestamp {
             #[inline]
             fn from(v: $name) -> Self {
@@ -108,7 +108,7 @@ macro_rules! def_event_slot_index {
             $crate::bounded_int_savestate!($name($inner));
         }
         pub use $priv_mod_ident::*;
-        
+
         impl ::core::convert::From<usize> for $name {
             #[inline]
             fn from(v: usize) -> Self {
@@ -116,7 +116,7 @@ macro_rules! def_event_slot_index {
                 unsafe { Self::new_unchecked(v as $inner) }
             }
         }
-        
+
         impl ::core::convert::From<$name> for usize {
             #[inline]
             fn from(v: $name) -> Self {
