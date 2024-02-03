@@ -15,7 +15,7 @@ extern crate self as emu_utils;
 
 pub use emu_utils_macros::*;
 
-#[cfg(all(target_os = "macos", app_bundle))]
+#[cfg(all(feature = "app", target_os = "macos", app_bundle))]
 #[macro_use]
 extern crate objc;
 
@@ -26,8 +26,8 @@ mod mem;
 pub use mem::*;
 mod savestate;
 pub use savestate::*;
-mod app;
+#[cfg(feature = "app")]
+pub mod app;
 pub mod schedule;
-#[cfg(feature = "std")]
+#[cfg(feature = "triple-buffer")]
 pub mod triple_buffer;
-pub use app::*;

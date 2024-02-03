@@ -10,12 +10,13 @@ edition = "2021"
 publish = false
 
 [features]
-std = []
+triple-buffer = []
+app = ["cocoa", "objc"]
 
 [dependencies]
 cfg-if = "1.0"
 emu-utils-macros = { path = "macros" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-cocoa = "0.25"
-objc = "0.2"
+cocoa = { version = "0.25", optional = true }
+objc = { version = "0.2", optional = true }
