@@ -31,3 +31,8 @@ pub mod app;
 pub mod schedule;
 #[cfg(feature = "triple-buffer")]
 pub mod triple_buffer;
+
+pub mod mem_prelude {
+    pub use crate::{ByteSlice, ByteMutSlice, ByteMutSliceOwnedPtr};
+    pub use crate::MemValue;
+}
