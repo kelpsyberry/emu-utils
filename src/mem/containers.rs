@@ -6,242 +6,385 @@ use core::{
 };
 use std::alloc::{alloc, alloc_zeroed, dealloc, Layout};
 
+pub trait ByteSlice {
+    /// # Safety
+    /// The resulting pointer from offsetting must be [valid] for `u8` reads.
+    ///
+    /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
+    unsafe fn read_unchecked(&self, off: usize) -> u8;
+
+    fn read(&self, off: usize) -> u8;
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be [valid] for `u8` reads.
+    ///
+    /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
+    unsafe fn read_le_unchecked<T: MemValue>(&self, off: usize) -> T;
+
+    fn read_le<T: MemValue>(&self, off: usize) -> T;
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be [valid] for `T` reads and aligned to a `T`
+    /// boundary.
+    ///
+    /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
+    unsafe fn read_le_aligned_unchecked<T: MemValue>(&self, off: usize) -> T;
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be aligned to a `T` boundary.
+    unsafe fn read_le_aligned<T: MemValue>(&self, off: usize) -> T;
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be [valid] for `T` reads.
+    ///
+    /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
+    unsafe fn read_be_unchecked<T: MemValue>(&self, off: usize) -> T;
+
+    fn read_be<T: MemValue>(&self, off: usize) -> T;
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be [valid] for `T` reads and aligned to a `T`
+    /// boundary.
+    ///
+    /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
+    unsafe fn read_be_aligned_unchecked<T: MemValue>(&self, off: usize) -> T;
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be aligned to a `T` boundary.
+    unsafe fn read_be_aligned<T: MemValue>(&self, off: usize) -> T;
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be [valid] for `T` reads.
+    ///
+    /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
+    unsafe fn read_ne_unchecked<T: MemValue>(&self, off: usize) -> T;
+
+    fn read_ne<T: MemValue>(&self, off: usize) -> T;
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be [valid] for `T` reads and aligned to a `T`
+    /// boundary.
+    ///
+    /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
+    unsafe fn read_ne_aligned_unchecked<T: MemValue>(&self, off: usize) -> T;
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be aligned to a `T` boundary.
+    unsafe fn read_ne_aligned<T: MemValue>(&self, off: usize) -> T;
+}
+
 macro_rules! impl_reads {
     () => {
-        /// # Safety
-        /// The resulting pointer from offsetting must be [valid] for `u8` reads.
-        ///
-        /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
         #[inline]
-        pub unsafe fn read_unchecked(&self, off: usize) -> u8 {
+        unsafe fn read_unchecked(&self, off: usize) -> u8 {
             *self.as_ptr().add(off)
         }
 
         #[inline]
-        pub fn read(&self, off: usize) -> u8 {
+        fn read(&self, off: usize) -> u8 {
             assert!(self.len() > off);
             unsafe { *self.as_ptr().add(off) }
         }
 
-        /// # Safety
-        /// The resulting pointer from offsetting must be [valid] for `u8` reads.
-        ///
-        /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
         #[inline]
-        pub unsafe fn read_le_unchecked<T: MemValue>(&self, off: usize) -> T {
+        unsafe fn read_le_unchecked<T: MemValue>(&self, off: usize) -> T {
             T::read_le(self.as_ptr().add(off) as *const T)
         }
 
         #[inline]
-        pub fn read_le<T: MemValue>(&self, off: usize) -> T {
+        fn read_le<T: MemValue>(&self, off: usize) -> T {
             assert!(self.len() >= off + mem::size_of::<T>());
             unsafe { T::read_le(self.as_ptr().add(off) as *const T) }
         }
 
-        /// # Safety
-        /// The resulting pointer from offsetting must be [valid] for `T` reads and aligned to a `T`
-        /// boundary.
-        ///
-        /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
         #[inline]
-        pub unsafe fn read_le_aligned_unchecked<T: MemValue>(&self, off: usize) -> T {
+        unsafe fn read_le_aligned_unchecked<T: MemValue>(&self, off: usize) -> T {
             T::read_le_aligned(self.as_ptr().add(off) as *const T)
         }
 
-        /// # Safety
-        /// The resulting pointer from offsetting must be aligned to a `T` boundary.
         #[inline]
-        pub unsafe fn read_le_aligned<T: MemValue>(&self, off: usize) -> T {
+        unsafe fn read_le_aligned<T: MemValue>(&self, off: usize) -> T {
             assert!(self.len() >= off + mem::size_of::<T>());
             T::read_le_aligned(self.as_ptr().add(off) as *const T)
         }
 
-        /// # Safety
-        /// The resulting pointer from offsetting must be [valid] for `T` reads.
-        ///
-        /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
         #[inline]
-        pub unsafe fn read_be_unchecked<T: MemValue>(&self, off: usize) -> T {
+        unsafe fn read_be_unchecked<T: MemValue>(&self, off: usize) -> T {
             T::read_be(self.as_ptr().add(off) as *const T)
         }
 
         #[inline]
-        pub fn read_be<T: MemValue>(&self, off: usize) -> T {
+        fn read_be<T: MemValue>(&self, off: usize) -> T {
             assert!(self.len() >= off + mem::size_of::<T>());
             unsafe { T::read_be(self.as_ptr().add(off) as *const T) }
         }
 
-        /// # Safety
-        /// The resulting pointer from offsetting must be [valid] for `T` reads and aligned to a `T`
-        /// boundary.
-        ///
-        /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
         #[inline]
-        pub unsafe fn read_be_aligned_unchecked<T: MemValue>(&self, off: usize) -> T {
+        unsafe fn read_be_aligned_unchecked<T: MemValue>(&self, off: usize) -> T {
             T::read_be_aligned(self.as_ptr().add(off) as *const T)
         }
 
-        /// # Safety
-        /// The resulting pointer from offsetting must be aligned to a `T` boundary.
         #[inline]
-        pub unsafe fn read_be_aligned<T: MemValue>(&self, off: usize) -> T {
+        unsafe fn read_be_aligned<T: MemValue>(&self, off: usize) -> T {
             assert!(self.len() >= off + mem::size_of::<T>());
             T::read_be_aligned(self.as_ptr().add(off) as *const T)
         }
 
-        /// # Safety
-        /// The resulting pointer from offsetting must be [valid] for `T` reads.
-        ///
-        /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
         #[inline]
-        pub unsafe fn read_ne_unchecked<T: MemValue>(&self, off: usize) -> T {
+        unsafe fn read_ne_unchecked<T: MemValue>(&self, off: usize) -> T {
             T::read_ne(self.as_ptr().add(off) as *const T)
         }
 
         #[inline]
-        pub fn read_ne<T: MemValue>(&self, off: usize) -> T {
+        fn read_ne<T: MemValue>(&self, off: usize) -> T {
             assert!(self.len() >= off + mem::size_of::<T>());
             unsafe { T::read_ne(self.as_ptr().add(off) as *const T) }
         }
 
-        /// # Safety
-        /// The resulting pointer from offsetting must be [valid] for `T` reads and aligned to a `T`
-        /// boundary.
-        ///
-        /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
         #[inline]
-        pub unsafe fn read_ne_aligned_unchecked<T: MemValue>(&self, off: usize) -> T {
+        unsafe fn read_ne_aligned_unchecked<T: MemValue>(&self, off: usize) -> T {
             T::read_ne_aligned(self.as_ptr().add(off) as *const T)
         }
 
-        /// # Safety
-        /// The resulting pointer from offsetting must be aligned to a `T` boundary.
         #[inline]
-        pub unsafe fn read_ne_aligned<T: MemValue>(&self, off: usize) -> T {
+        unsafe fn read_ne_aligned<T: MemValue>(&self, off: usize) -> T {
             assert!(self.len() >= off + mem::size_of::<T>());
             T::read_ne_aligned(self.as_ptr().add(off) as *const T)
         }
     };
 }
 
+pub trait ByteMutSlice {
+    /// # Safety
+    /// The resulting pointer from offsetting must be [valid] for `u8` writes.
+    ///
+    /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
+    unsafe fn write_unchecked(&mut self, off: usize, value: u8);
+
+    fn write(&mut self, off: usize, value: u8);
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be [valid] for `T` writes.
+    ///
+    /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
+    unsafe fn write_le_unchecked<T: MemValue>(&mut self, off: usize, value: T);
+
+    fn write_le<T: MemValue>(&mut self, off: usize, value: T);
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be [valid] for `T` writes and aligned to a
+    /// `T` boundary.
+    ///
+    /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
+    unsafe fn write_le_aligned_unchecked<T: MemValue>(&mut self, off: usize, value: T);
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be aligned to a `T` boundary.
+    unsafe fn write_le_aligned<T: MemValue>(&mut self, off: usize, value: T);
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be [valid] for `T` writes.
+    ///
+    /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
+    unsafe fn write_be_unchecked<T: MemValue>(&mut self, off: usize, value: T);
+
+    fn write_be<T: MemValue>(&mut self, off: usize, value: T);
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be [valid] for `T` writes and aligned to a
+    /// `T` boundary.
+    ///
+    /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
+    unsafe fn write_be_aligned_unchecked<T: MemValue>(&mut self, off: usize, value: T);
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be aligned to a `T` boundary.
+    unsafe fn write_be_aligned<T: MemValue>(&mut self, off: usize, value: T);
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be [valid] for `T` writes.
+    ///
+    /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
+    unsafe fn write_ne_unchecked<T: MemValue>(&mut self, off: usize, value: T);
+
+    fn write_ne<T: MemValue>(&mut self, off: usize, value: T);
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be [valid] for `T` writes and aligned to a
+    /// `T` boundary.
+    ///
+    /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
+    unsafe fn write_ne_aligned_unchecked<T: MemValue>(&mut self, off: usize, value: T);
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be aligned to a `T` boundary.
+    unsafe fn write_ne_aligned<T: MemValue>(&mut self, off: usize, value: T);
+}
+
+pub trait ByteMutSliceOwnedPtr {
+    /// # Safety
+    /// The resulting pointer from offsetting must be [valid] for `u8` writes.
+    ///
+    /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
+    unsafe fn write_unchecked(&self, off: usize, value: u8);
+
+    fn write(&self, off: usize, value: u8);
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be [valid] for `T` writes.
+    ///
+    /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
+    unsafe fn write_le_unchecked<T: MemValue>(&self, off: usize, value: T);
+
+    fn write_le<T: MemValue>(&self, off: usize, value: T);
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be [valid] for `T` writes and aligned to a
+    /// `T` boundary.
+    ///
+    /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
+    unsafe fn write_le_aligned_unchecked<T: MemValue>(&self, off: usize, value: T);
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be aligned to a `T` boundary.
+    unsafe fn write_le_aligned<T: MemValue>(&self, off: usize, value: T);
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be [valid] for `T` writes.
+    ///
+    /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
+    unsafe fn write_be_unchecked<T: MemValue>(&self, off: usize, value: T);
+
+    fn write_be<T: MemValue>(&self, off: usize, value: T);
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be [valid] for `T` writes and aligned to a
+    /// `T` boundary.
+    ///
+    /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
+    unsafe fn write_be_aligned_unchecked<T: MemValue>(&self, off: usize, value: T);
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be aligned to a `T` boundary.
+    unsafe fn write_be_aligned<T: MemValue>(&self, off: usize, value: T);
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be [valid] for `T` writes.
+    ///
+    /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
+    unsafe fn write_ne_unchecked<T: MemValue>(&self, off: usize, value: T);
+
+    fn write_ne<T: MemValue>(&self, off: usize, value: T);
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be [valid] for `T` writes and aligned to a
+    /// `T` boundary.
+    ///
+    /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
+    unsafe fn write_ne_aligned_unchecked<T: MemValue>(&self, off: usize, value: T);
+
+    /// # Safety
+    /// The resulting pointer from offsetting must be aligned to a `T` boundary.
+    unsafe fn write_ne_aligned<T: MemValue>(&self, off: usize, value: T);
+}
+
 macro_rules! impl_writes {
-    ($as_ptr: ident$(, $mut: ident)?) => {
-        /// # Safety
-        /// The resulting pointer from offsetting must be [valid] for `u8` writes.
-        ///
-        /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
+    ($($mut: ident)?) => {
         #[inline]
-        pub unsafe fn write_unchecked(&$($mut)* self, off: usize, value: u8) {
-            *self.$as_ptr().add(off) = value;
+        unsafe fn write_unchecked(&$($mut)* self, off: usize, value: u8) {
+            *self.as_mut_ptr().add(off) = value;
         }
 
         #[inline]
-        pub fn write(&$($mut)* self, off: usize, value: u8) {
+        fn write(&$($mut)* self, off: usize, value: u8) {
             assert!(self.len() > off);
             unsafe {
-                *self.$as_ptr().add(off) = value;
+                *self.as_mut_ptr().add(off) = value;
             }
         }
 
-        /// # Safety
-        /// The resulting pointer from offsetting must be [valid] for `T` writes.
-        ///
-        /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
         #[inline]
-        pub unsafe fn write_le_unchecked<T: MemValue>(&$($mut)* self, off: usize, value: T) {
-            value.write_le(self.$as_ptr().add(off) as *mut T)
+        unsafe fn write_le_unchecked<T: MemValue>(&$($mut)* self, off: usize, value: T) {
+            value.write_le(self.as_mut_ptr().add(off) as *mut T)
         }
 
         #[inline]
-        pub fn write_le<T: MemValue>(&$($mut)* self, off: usize, value: T) {
+        fn write_le<T: MemValue>(&$($mut)* self, off: usize, value: T) {
             assert!(self.len() >= off + mem::size_of::<T>());
-            unsafe { value.write_le(self.$as_ptr().add(off) as *mut T) }
+            unsafe { value.write_le(self.as_mut_ptr().add(off) as *mut T) }
         }
 
-        /// # Safety
-        /// The resulting pointer from offsetting must be [valid] for `T` writes and aligned to a
-        /// `T` boundary.
-        ///
-        /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
         #[inline]
-        pub unsafe fn write_le_aligned_unchecked<T: MemValue>(&$($mut)* self, off: usize, value: T) {
-            value.write_le_aligned(self.$as_ptr().add(off) as *mut T)
+        unsafe fn write_le_aligned_unchecked<T: MemValue>(&$($mut)* self, off: usize, value: T) {
+            value.write_le_aligned(self.as_mut_ptr().add(off) as *mut T)
         }
 
-        /// # Safety
-        /// The resulting pointer from offsetting must be aligned to a `T` boundary.
         #[inline]
-        pub unsafe fn write_le_aligned<T: MemValue>(&$($mut)* self, off: usize, value: T) {
+        unsafe fn write_le_aligned<T: MemValue>(&$($mut)* self, off: usize, value: T) {
             assert!(self.len() >= off + mem::size_of::<T>());
-            value.write_le_aligned(self.$as_ptr().add(off) as *mut T)
-        }
-
-        /// # Safety
-        /// The resulting pointer from offsetting must be [valid] for `T` writes.
-        ///
-        /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
-        #[inline]
-        pub unsafe fn write_be_unchecked<T: MemValue>(&$($mut)* self, off: usize, value: T) {
-            value.write_be(self.$as_ptr().add(off) as *mut T)
+            value.write_le_aligned(self.as_mut_ptr().add(off) as *mut T)
         }
 
         #[inline]
-        pub fn write_be<T: MemValue>(&$($mut)* self, off: usize, value: T) {
+        unsafe fn write_be_unchecked<T: MemValue>(&$($mut)* self, off: usize, value: T) {
+            value.write_be(self.as_mut_ptr().add(off) as *mut T)
+        }
+
+        #[inline]
+        fn write_be<T: MemValue>(&$($mut)* self, off: usize, value: T) {
             assert!(self.len() >= off + mem::size_of::<T>());
-            unsafe { value.write_be(self.$as_ptr().add(off) as *mut T) }
+            unsafe { value.write_be(self.as_mut_ptr().add(off) as *mut T) }
         }
 
-        /// # Safety
-        /// The resulting pointer from offsetting must be [valid] for `T` writes and aligned to a
-        /// `T` boundary.
-        ///
-        /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
         #[inline]
-        pub unsafe fn write_be_aligned_unchecked<T: MemValue>(&$($mut)* self, off: usize, value: T) {
-            value.write_be_aligned(self.$as_ptr().add(off) as *mut T)
+        unsafe fn write_be_aligned_unchecked<T: MemValue>(&$($mut)* self, off: usize, value: T) {
+            value.write_be_aligned(self.as_mut_ptr().add(off) as *mut T)
         }
 
-        /// # Safety
-        /// The resulting pointer from offsetting must be aligned to a `T` boundary.
         #[inline]
-        pub unsafe fn write_be_aligned<T: MemValue>(&$($mut)* self, off: usize, value: T) {
+        unsafe fn write_be_aligned<T: MemValue>(&$($mut)* self, off: usize, value: T) {
             assert!(self.len() >= off + mem::size_of::<T>());
-            value.write_be_aligned(self.$as_ptr().add(off) as *mut T)
-        }
-
-        /// # Safety
-        /// The resulting pointer from offsetting must be [valid] for `T` writes.
-        ///
-        /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
-        #[inline]
-        pub unsafe fn write_ne_unchecked<T: MemValue>(&$($mut)* self, off: usize, value: T) {
-            value.write_ne(self.$as_ptr().add(off) as *mut T)
+            value.write_be_aligned(self.as_mut_ptr().add(off) as *mut T)
         }
 
         #[inline]
-        pub fn write_ne<T: MemValue>(&$($mut)* self, off: usize, value: T) {
+        unsafe fn write_ne_unchecked<T: MemValue>(&$($mut)* self, off: usize, value: T) {
+            value.write_ne(self.as_mut_ptr().add(off) as *mut T)
+        }
+
+        #[inline]
+        fn write_ne<T: MemValue>(&$($mut)* self, off: usize, value: T) {
             assert!(self.len() >= off + mem::size_of::<T>());
-            unsafe { value.write_ne(self.$as_ptr().add(off) as *mut T) }
+            unsafe { value.write_ne(self.as_mut_ptr().add(off) as *mut T) }
         }
 
-        /// # Safety
-        /// The resulting pointer from offsetting must be [valid] for `T` writes and aligned to a
-        /// `T` boundary.
-        ///
-        /// [valid]: https://doc.rust-lang.org/stable/std/ptr/index.html#safety
         #[inline]
-        pub unsafe fn write_ne_aligned_unchecked<T: MemValue>(&$($mut)* self, off: usize, value: T) {
-            value.write_ne_aligned(self.$as_ptr().add(off) as *mut T)
+        unsafe fn write_ne_aligned_unchecked<T: MemValue>(&$($mut)* self, off: usize, value: T) {
+            value.write_ne_aligned(self.as_mut_ptr().add(off) as *mut T)
         }
 
-        /// # Safety
-        /// The resulting pointer from offsetting must be aligned to a `T` boundary.
         #[inline]
-        pub unsafe fn write_ne_aligned<T: MemValue>(&$($mut)* self, off: usize, value: T) {
+        unsafe fn write_ne_aligned<T: MemValue>(&$($mut)* self, off: usize, value: T) {
             assert!(self.len() >= off + mem::size_of::<T>());
-            value.write_ne_aligned(self.$as_ptr().add(off) as *mut T)
+            value.write_ne_aligned(self.as_mut_ptr().add(off) as *mut T)
         }
     };
+}
+
+impl ByteSlice for [u8] {
+    impl_reads!();
+}
+
+impl ByteMutSlice for [u8] {
+    impl_writes!(mut);
+}
+
+impl<const LEN: usize> ByteSlice for [u8; LEN] {
+    impl_reads!();
+}
+
+impl<const LEN: usize> ByteMutSlice for [u8; LEN] {
+    impl_writes!(mut);
 }
 
 #[repr(C, align(8))]
@@ -261,19 +404,14 @@ impl<const LEN: usize> Bytes<LEN> {
     pub const fn into_inner(self) -> [u8; LEN] {
         self.0
     }
+}
 
-    #[inline]
-    pub fn as_byte_slice(&self) -> ByteSlice {
-        ByteSlice::new(&self[..])
-    }
-
-    #[inline]
-    pub fn as_byte_mut_slice(&mut self) -> ByteMutSlice {
-        ByteMutSlice::new(&mut self[..])
-    }
-
+impl<const LEN: usize> ByteSlice for Bytes<LEN> {
     impl_reads!();
-    impl_writes!(as_mut_ptr, mut);
+}
+
+impl<const LEN: usize> ByteMutSlice for Bytes<LEN> {
+    impl_writes!(mut);
 }
 
 impl<const LEN: usize> Deref for Bytes<LEN> {
@@ -339,43 +477,86 @@ impl<const LEN: usize> OwnedBytesCellPtr<LEN> {
     }
 
     #[inline]
-    pub fn as_ptr(&self) -> *mut u8 {
-        self.0 as *mut u8
+    pub fn as_ptr(&self) -> *const u8 {
+        self.0.cast()
     }
 
     #[inline]
-    pub fn as_arr_ptr(&self) -> *mut [u8; LEN] {
-        self.0 as *mut [u8; LEN]
+    pub fn as_mut_ptr(&self) -> *mut u8 {
+        self.0.cast()
     }
 
     #[inline]
-    pub fn as_bytes_ptr(&self) -> *mut Bytes<LEN> {
-        self.0
+    pub fn as_arr_ptr(&self) -> *const [u8; LEN] {
+        self.0.cast()
     }
 
     #[inline]
-    pub fn as_slice_ptr(&self) -> *mut [u8] {
-        ptr::slice_from_raw_parts_mut(self.0 as *mut u8, LEN)
+    pub fn as_arr_mut_ptr(&self) -> *mut [u8; LEN] {
+        self.0.cast()
     }
 
     /// # Safety
     /// The lifetime of the returned value must not intersect with those of other unique references
     /// to the slice.
     #[inline]
-    pub unsafe fn as_byte_slice(&self) -> ByteSlice {
-        ByteSlice::new(&*self.as_slice_ptr())
+    pub unsafe fn as_arr(&self) -> &[u8; LEN] {
+        &*self.as_arr_ptr()
     }
 
     /// # Safety
     /// The lifetime of the returned value must not intersect with those of other references to the
     /// slice.
     #[inline]
-    pub unsafe fn as_byte_mut_slice(&self) -> ByteMutSlice {
-        ByteMutSlice::new(&mut *self.as_slice_ptr())
+    #[allow(clippy::mut_from_ref)]
+    pub unsafe fn as_mut_arr(&self) -> &mut [u8; LEN] {
+        &mut *self.as_arr_mut_ptr()
     }
 
+    #[inline]
+    pub fn as_bytes_ptr(&self) -> *const Bytes<LEN> {
+        self.0
+    }
+
+    #[inline]
+    pub fn as_bytes_mut_ptr(&self) -> *mut Bytes<LEN> {
+        self.0
+    }
+
+    /// # Safety
+    /// The lifetime of the returned value must not intersect with those of other unique references
+    /// to the slice.
+    #[inline]
+    pub unsafe fn as_bytes(&self) -> &Bytes<LEN> {
+        &*self.as_bytes_ptr()
+    }
+
+    /// # Safety
+    /// The lifetime of the returned value must not intersect with those of other references to the
+    /// slice.
+    #[inline]
+    #[allow(clippy::mut_from_ref)]
+    pub unsafe fn as_mut_bytes(&self) -> &mut Bytes<LEN> {
+        &mut *self.as_bytes_mut_ptr()
+    }
+
+    #[inline]
+    pub fn as_slice_ptr(&self) -> *const [u8] {
+        ptr::slice_from_raw_parts(self.0.cast(), LEN)
+    }
+
+    #[inline]
+    pub fn as_slice_mut_ptr(&self) -> *mut [u8] {
+        ptr::slice_from_raw_parts_mut(self.0.cast(), LEN)
+    }
+}
+
+impl<const LEN: usize> ByteSlice for OwnedBytesCellPtr<LEN> {
     impl_reads!();
-    impl_writes!(as_ptr);
+}
+
+impl<const LEN: usize> ByteMutSliceOwnedPtr for OwnedBytesCellPtr<LEN> {
+    impl_writes!();
 }
 
 impl<const LEN: usize> Drop for OwnedBytesCellPtr<LEN> {
@@ -414,19 +595,27 @@ impl BoxedByteSlice {
             )))
         }
     }
+}
 
+impl Drop for BoxedByteSlice {
     #[inline]
-    pub fn as_byte_slice(&self) -> ByteSlice {
-        ByteSlice::new(&self[..])
+    fn drop(&mut self) {
+        let layout = Layout::from_size_align((self.0.len() + 7) & !7, 8).unwrap();
+        unsafe {
+            dealloc(
+                Box::into_raw(mem::ManuallyDrop::take(&mut self.0)) as *mut u8,
+                layout,
+            )
+        }
     }
+}
 
-    #[inline]
-    pub fn as_byte_mut_slice(&mut self) -> ByteMutSlice {
-        ByteMutSlice::new(&mut self[..])
-    }
-
+impl ByteSlice for BoxedByteSlice {
     impl_reads!();
-    impl_writes!(as_mut_ptr, mut);
+}
+
+impl ByteMutSlice for BoxedByteSlice {
+    impl_writes!(mut);
 }
 
 impl Deref for BoxedByteSlice {
@@ -441,19 +630,6 @@ impl DerefMut for BoxedByteSlice {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
-    }
-}
-
-impl Drop for BoxedByteSlice {
-    #[inline]
-    fn drop(&mut self) {
-        let layout = Layout::from_size_align((self.0.len() + 7) & !7, 8).unwrap();
-        unsafe {
-            dealloc(
-                Box::into_raw(mem::ManuallyDrop::take(&mut self.0)) as *mut u8,
-                layout,
-            )
-        }
     }
 }
 
@@ -497,12 +673,22 @@ impl OwnedByteSliceCellPtr {
     }
 
     #[inline]
-    pub fn as_ptr(&self) -> *mut u8 {
-        self.0
+    pub fn as_ptr(&self) -> *const u8 {
+        self.0.cast()
     }
 
     #[inline]
-    pub fn as_slice_ptr(&self) -> *mut [u8] {
+    pub fn as_mut_ptr(&self) -> *mut u8 {
+        self.0.cast()
+    }
+
+    #[inline]
+    pub fn as_slice_ptr(&self) -> *const [u8] {
+        ptr::slice_from_raw_parts(self.0, self.1)
+    }
+
+    #[inline]
+    pub fn as_slice_mut_ptr(&self) -> *mut [u8] {
         ptr::slice_from_raw_parts_mut(self.0, self.1)
     }
 
@@ -510,20 +696,18 @@ impl OwnedByteSliceCellPtr {
     /// The lifetime of the returned value must not intersect with those of other unique references
     /// to the slice.
     #[inline]
-    pub unsafe fn as_byte_slice(&self) -> ByteSlice {
-        ByteSlice::new(&*self.as_slice_ptr())
+    pub unsafe fn as_slice(&self) -> &[u8] {
+        &*self.as_slice_ptr()
     }
 
     /// # Safety
     /// The lifetime of the returned value must not intersect with those of other references to the
     /// slice.
     #[inline]
-    pub unsafe fn as_byte_mut_slice(&self) -> ByteMutSlice {
-        ByteMutSlice::new(&mut *self.as_slice_ptr())
+    #[allow(clippy::mut_from_ref)]
+    pub unsafe fn as_mut_slice(&self) -> &mut [u8] {
+        &mut *self.as_slice_mut_ptr()
     }
-
-    impl_reads!();
-    impl_writes!(as_ptr);
 }
 
 impl Drop for OwnedByteSliceCellPtr {
@@ -534,49 +718,10 @@ impl Drop for OwnedByteSliceCellPtr {
     }
 }
 
-#[derive(Clone, Copy)]
-pub struct ByteSlice<'a>(&'a [u8]);
-
-impl<'a> ByteSlice<'a> {
-    #[inline]
-    pub const fn new(slice: &'a [u8]) -> Self {
-        ByteSlice(slice)
-    }
-
+impl ByteSlice for OwnedByteSliceCellPtr {
     impl_reads!();
 }
 
-impl<'a> Deref for ByteSlice<'a> {
-    type Target = [u8];
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        self.0
-    }
-}
-
-pub struct ByteMutSlice<'a>(&'a mut [u8]);
-
-impl<'a> ByteMutSlice<'a> {
-    #[inline]
-    pub fn new(slice: &'a mut [u8]) -> Self {
-        ByteMutSlice(slice)
-    }
-
-    impl_reads!();
-    impl_writes!(as_mut_ptr, mut);
-}
-
-impl<'a> Deref for ByteMutSlice<'a> {
-    type Target = [u8];
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        self.0
-    }
-}
-
-impl<'a> DerefMut for ByteMutSlice<'a> {
-    #[inline]
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.0
-    }
+impl ByteMutSliceOwnedPtr for OwnedByteSliceCellPtr {
+    impl_writes!();
 }

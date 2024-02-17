@@ -440,7 +440,7 @@ impl<const LEN: usize> Loadable for OwnedBytesCellPtr<LEN> {
     fn load<S: ReadSavestate>(save: &mut S) -> Result<Self, S::Error> {
         let bytes = OwnedBytesCellPtr::new_zeroed();
         unsafe {
-            ptr::copy_nonoverlapping(save.load_bytes(LEN)?, bytes.as_ptr(), LEN);
+            ptr::copy_nonoverlapping(save.load_bytes(LEN)?, bytes.as_mut_ptr(), LEN);
         }
         Ok(bytes)
     }
@@ -450,7 +450,7 @@ impl<const LEN: usize> LoadableInPlace for OwnedBytesCellPtr<LEN> {
     #[inline]
     fn load_in_place<S: ReadSavestate>(&mut self, save: &mut S) -> Result<(), S::Error> {
         unsafe {
-            ptr::copy_nonoverlapping(save.load_bytes(LEN)?, self.as_ptr(), LEN);
+            ptr::copy_nonoverlapping(save.load_bytes(LEN)?, self.as_mut_ptr(), LEN);
         }
         Ok(())
     }

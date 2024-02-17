@@ -60,10 +60,10 @@ mod sealed {
         };
     }
 
-    impl_mem_value!(u8, i8, u16, i16, u32, i32, u64, i64, u128, i128, usize, isize);
+    impl_mem_value!(u8, i8, u16, i16, u32, i32, u64, i64, u128, i128, usize, isize, f32, f64);
 }
 
-pub trait MemValue: Sized + Copy + Zero + Fill8 {
+pub trait MemValue: Sized + Copy + Zero + Fill8 + sealed::MemValue {
     fn from_le_bytes(bytes: [u8; mem::size_of::<Self>()]) -> Self;
     fn from_be_bytes(bytes: [u8; mem::size_of::<Self>()]) -> Self;
     fn from_ne_bytes(bytes: [u8; mem::size_of::<Self>()]) -> Self;
@@ -153,7 +153,7 @@ mod impl_primitive {
         };
     }
 
-    impl_unsafe_trait!(Fill8; u8, i8, u16, i16, u32, i32, u64, i64, u128, i128, usize, isize);
+    impl_unsafe_trait!(Fill8; u8, i8, u16, i16, u32, i32, u64, i64, u128, i128, usize, isize, f32, f64);
     impl_unsafe_trait!(Zero; u8, i8, u16, i16, u32, i32, u64, i64, u128, i128, usize, isize, bool, char, f32, f64);
 
     macro_rules! impl_mem_value {
@@ -294,5 +294,144 @@ mod impl_primitive {
         };
     }
 
+    macro_rules! impl_mem_value_float {
+        ($($ty: ty),*) => {
+            $(
+                impl MemValue for $ty {
+                    #[inline]
+                    fn from_le_bytes(bytes: [u8; mem::size_of::<Self>()]) -> Self {
+                        <$ty>::from_le_bytes(bytes)
+                    }
+
+                    #[inline]
+                    fn from_be_bytes(bytes: [u8; mem::size_of::<Self>()]) -> Self {
+                        <$ty>::from_be_bytes(bytes)
+                    }
+
+                    #[inline]
+                    fn from_ne_bytes(bytes: [u8; mem::size_of::<Self>()]) -> Self {
+                        <$ty>::from_ne_bytes(bytes)
+                    }
+
+                    #[inline]
+                    fn to_le_bytes(self) -> [u8; mem::size_of::<Self>()] {
+                        <$ty>::to_le_bytes(self)
+                    }
+
+                    #[inline]
+                    fn to_be_bytes(self) -> [u8; mem::size_of::<Self>()] {
+                        <$ty>::to_be_bytes(self)
+                    }
+
+                    #[inline]
+                    fn to_ne_bytes(self) -> [u8; mem::size_of::<Self>()] {
+                        <$ty>::to_ne_bytes(self)
+                    }
+
+                    #[inline]
+                    #[allow(unused_mut)]
+                    unsafe fn read_le(ptr: *const Self) -> Self {
+                        let mut res = ptr.read_unaligned();
+                        #[cfg(not(target_endian = "little"))]
+                        {
+                            res = Self::from_bits(res.to_bits().swap_bytes());
+                        }
+                        res
+                    }
+
+                    #[inline]
+                    #[allow(unused_mut)]
+                    unsafe fn read_le_aligned(ptr: *const Self) -> Self {
+                        let mut res = ptr.read();
+                        #[cfg(not(target_endian = "little"))]
+                        {
+                            res = Self::from_bits(res.to_bits().swap_bytes());
+                        }
+                        res
+                    }
+
+                    #[inline]
+                    unsafe fn read_be(ptr: *const Self) -> Self {
+                        let mut res = ptr.read_unaligned();
+                        #[cfg(not(target_endian = "big"))]
+                        {
+                            res = Self::from_bits(res.to_bits().swap_bytes());
+                        }
+                        res
+                    }
+
+                    #[inline]
+                    unsafe fn read_be_aligned(ptr: *const Self) -> Self {
+                        let mut res = ptr.read();
+                        #[cfg(not(target_endian = "big"))]
+                        {
+                            res = Self::from_bits(res.to_bits().swap_bytes());
+                        }
+                        res
+                    }
+
+                    #[inline]
+                    unsafe fn read_ne(ptr: *const Self) -> Self {
+                        ptr.read_unaligned()
+                    }
+
+                    #[inline]
+                    unsafe fn read_ne_aligned(ptr: *const Self) -> Self {
+                        ptr.read()
+                    }
+
+                    #[inline]
+                    #[allow(unused_mut)]
+                    unsafe fn write_le(mut self, ptr: *mut Self) {
+                        #[cfg(not(target_endian = "little"))]
+                        {
+                            self = Self::from_bits(self.to_bits().swap_bytes());
+                        }
+                        ptr.write_unaligned(self);
+                    }
+
+                    #[inline]
+                    #[allow(unused_mut)]
+                    unsafe fn write_le_aligned(mut self, ptr: *mut Self) {
+                        #[cfg(not(target_endian = "little"))]
+                        {
+                            self = Self::from_bits(self.to_bits().swap_bytes());
+                        }
+                        ptr.write(self);
+                    }
+
+                    #[inline]
+                    unsafe fn write_be(mut self, ptr: *mut Self) {
+                        #[cfg(not(target_endian = "big"))]
+                        {
+                            self = Self::from_bits(self.to_bits().swap_bytes());
+                        }
+                        ptr.write_unaligned(self);
+                    }
+
+                    #[inline]
+                    unsafe fn write_be_aligned(mut self, ptr: *mut Self) {
+                        #[cfg(not(target_endian = "big"))]
+                        {
+                            self = Self::from_bits(self.to_bits().swap_bytes());
+                        }
+                        ptr.write(self);
+                    }
+
+                    #[inline]
+                    unsafe fn write_ne(self, ptr: *mut Self) {
+                        ptr.write_unaligned(self);
+                    }
+
+                    #[inline]
+                    unsafe fn write_ne_aligned(self, ptr: *mut Self) {
+                        ptr.write(self);
+                    }
+                }
+            )*
+        };
+    }
+
     impl_mem_value!(u8, i8, u16, i16, u32, i32, u64, i64, u128, i128, usize, isize);
+    impl_mem_value_float!(f32, f64);
 }
