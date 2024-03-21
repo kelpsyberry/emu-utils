@@ -34,5 +34,6 @@ pub mod triple_buffer;
 
 pub mod mem_prelude {
     pub use crate::{ByteSlice, ByteMutSlice, ByteMutSliceOwnedPtr};
+    pub use crate::{BoxedByteSlice, Bytes, OwnedByteSliceCellPtr, OwnedBytesCellPtr};
     pub use crate::MemValue;
 }
