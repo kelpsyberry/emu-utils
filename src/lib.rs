@@ -3,7 +3,7 @@
     maybe_uninit_uninit_array,
     maybe_uninit_array_assume_init,
     portable_simd,
-    new_uninit
+    new_zeroed_alloc
 )]
 #![allow(incomplete_features)]
 #![warn(clippy::all)]
