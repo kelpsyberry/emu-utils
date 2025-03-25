@@ -365,7 +365,7 @@ where
 {
     #[inline]
     fn load<S: ReadSavestate>(save: &mut S) -> Result<Self, S::Error> {
-        let mut result = MaybeUninit::uninit_array();
+        let mut result = [const { MaybeUninit::uninit() }; LEN];
         for elem in &mut result {
             *elem = MaybeUninit::new(save.load()?);
         }
@@ -393,7 +393,7 @@ where
 {
     #[inline]
     fn load<S: ReadSavestate>(save: &mut S) -> Result<Self, S::Error> {
-        let mut result = MaybeUninit::uninit_array();
+        let mut result = [const { MaybeUninit::uninit() }; LANES];
         for elem in &mut result {
             *elem = MaybeUninit::new(save.load()?);
         }
