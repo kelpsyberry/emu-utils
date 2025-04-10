@@ -198,9 +198,6 @@ macro_rules! bounded_int {
     };
 }
 
-// TODO: `#![feature(rustc_attrs)]` seems to be very unstable at the moment, maybe re-enable the
-// scalar valid range attributes once that's no longer the case.
-
 #[macro_export]
 macro_rules! bounded_int_lit {
     (
@@ -211,8 +208,8 @@ macro_rules! bounded_int_lit {
         $(, not [$($not_value: expr),+])?
     ) => {
         $crate::bounded_int_common!(
-            // $(#[rustc_layout_scalar_valid_range_start($min_value)])*
-            // $(#[rustc_layout_scalar_valid_range_end($max_value)])*
+            $(#[rustc_layout_scalar_valid_range_start($min_value)])*
+            $(#[rustc_layout_scalar_valid_range_end($max_value)])*
             $(#[$(#[$($attr)*])*])* $vis struct $name($inner)
             $(, min $min_value)*
             $(, max $max_value)*
