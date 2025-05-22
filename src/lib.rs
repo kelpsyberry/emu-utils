@@ -1,10 +1,10 @@
 #![feature(
-    generic_const_exprs,
     maybe_uninit_array_assume_init,
     portable_simd,
-    new_zeroed_alloc
+    new_zeroed_alloc,
+    core_intrinsics
 )]
-#![allow(incomplete_features)]
+#![allow(internal_features)]
 #![warn(clippy::all)]
 #![allow(clippy::result_unit_err)]
 
@@ -32,7 +32,7 @@ pub mod schedule;
 pub mod triple_buffer;
 
 pub mod mem_prelude {
-    pub use crate::{ByteSlice, ByteMutSlice, ByteMutSliceOwnedPtr};
-    pub use crate::{BoxedByteSlice, Bytes, OwnedByteSliceCellPtr, OwnedBytesCellPtr};
     pub use crate::MemValue;
+    pub use crate::{BoxedByteSlice, Bytes, OwnedByteSliceCellPtr, OwnedBytesCellPtr};
+    pub use crate::{ByteMutSlice, ByteMutSliceOwnedPtr, ByteSlice};
 }
